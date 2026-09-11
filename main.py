@@ -114,3 +114,10 @@ st.markdown("---")
 st.header("📌 구역 3. [추후 추가 예정]")
 st.write("새로운 시간 기반 데이터 시각화 그래프가 여기에 추가될 예정입니다.")
 st.info("💡 **이 그래프로 알 수 있는 것:** (그래프 추가 후 설명이 작성됩니다.)")
+# ── 그래프 2. 흥행 대작들의 곡선 겹쳐 보기 ────────────────────
+st.header("2. 흥행 대작 다섯 편의 곡선")
+top5 = df.groupby("영화명")["일관객"].sum().nlargest(5).index
+five = df[df["영화명"].isin(top5)].sort_values("날짜")
+fig2 = px.line(five, x="날짜", y="일관객", color="영화명", markers=True)
+st.plotly_chart(fig2, width="stretch")
+st.caption("이 그래프로 알 수 있는 것: (한 문장으로 적어 보세요)")
