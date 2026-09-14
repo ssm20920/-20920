@@ -182,7 +182,7 @@ top10_summary = (
     )
     .reset_index()
     .nlargest(10, '총관객수')
-    .sort_values('총관객수', ascending=True)  # Plotly 가로 막대는 아래서부터 그려지므로 오름차순 정렬
+    .sort_values('총관객수', ascending=True)
 )
 
 # Plotly 가로 막대그래프 생성
@@ -198,7 +198,6 @@ fig4 = px.bar(
     color_continuous_scale='Viridis'
 )
 
-# 마우스 오버 툴팁 설정 (10위권 차트인 일수 포함)
 fig4.update_traces(
     hovertemplate="<b>영화명:</b> %{y}<br><b>총 관객 수:</b> %{x:,}명<br><b>10위권 진입 일수:</b> %{customdata[0]}일<extra></extra>",
     customdata=top10_summary[['차트인일수']].values
@@ -216,7 +215,67 @@ st.info("💡 **이 그래프로 알 수 있는 것:** 해당 기간 가장 높�
 
 st.markdown("---")
 
-# 7. 향후 추가될 구역 플레이스홀더 (확장용)
-st.header("📌 구역 5. [추후 추가 예정]")
+# 7. 구역 5: 월×요일별 일관객 합계 히트맵
+st.header("📌 구역 5. 월×요일별 일관객 합계 히트맵")
+
+# 월, 요일 컬럼 추출
+df_heatmap = df.copy()
+df_heatmap['월'] = df_heatmap['날짜'].dt.month.map(lambda x: f"{x}월")
+df_heatmap['요일'] = df_heatmap['날짜'].dt.day_name()
+
+# 요일 한글 매핑
+day_map = {
+    'Monday': '월요일',
+    'Tuesday': '화요일',
+    'Wednesday': '수요일',
+    'Thursday': '목요일',
+    'Friday': '금요일',
+    'Saturday': '토요일',
+    'Sunday': '일요일'
+}
+df_heatmap['요일'] = df_heatmap['요일'].map(day_map)
+
+# 요일 및 월 순서 정의 (월요일 ~ 일요일)
+days_order = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+months_order = [f"{m}월" for m in range(1, 13)]
+
+# 월x요일별 일관객 합계 계산
+pivot_df = (
+    df_heatmap.groupby(['월', '요일'])['일관객']
+    .sum()
+    .reset_index()
+)
+
+# Plotly 히트맵 생성
+fig5 = px.density_heatmap(
+    pivot_df,
+    x='요일',
+    y='월',
+    z='일관객',
+    category_orders={'요일': days_order, '월': months_order},
+    title="월 및 요일별 일관객 합계 분포",
+    labels={'요일': '요일', '월': '월', '일관객': '총 관객 수(명)'},
+    color_continuous_scale='Blues',
+    text_auto=',d'
+)
+
+fig5.update_traces(
+    hovertemplate="<b>월:</b> %{y}<br><b>요일:</b> %{x}<br><b>관객 수 합계:</b> %{z:,}명<extra></extra>"
+)
+
+fig5.update_layout(
+    xaxis_title="요일 (월요일 ➔ 일요일)",
+    yaxis_title="월",
+    coloraxis_colorbar=dict(title="관객 수(명)")
+)
+
+st.plotly_chart(fig5, use_container_width=True)
+
+st.info("💡 **이 그래프로 알 수 있는 것:** 계절/월별 시즌 특성과 요일별(평일 vs 주말) 관객 유입 패턴이 결합된 극장가 최고 성수기 시간대를 직관적으로 확인할 수 있습니다.")
+
+st.markdown("---")
+
+# 8. 향후 추가될 구역 플레이스홀더 (확장용)
+st.header("📌 구역 6. [추후 추가 예정]")
 st.write("새로운 시간 기반 데이터 시각화 그래프가 여기에 추가될 예정입니다.")
 st.info("💡 **이 그래프로 알 수 있는 것:** (그래프 추가 후 설명이 작성됩니다.)")
