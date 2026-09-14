@@ -170,7 +170,53 @@ st.info(f"💡 **이 그래프로 알 수 있는 것:** 연중 박스오피스 �
 
 st.markdown("---")
 
-# 6. 향후 추가될 구역 플레이스홀더 (확장용)
-st.header("📌 구역 4. [추후 추가 예정]")
+# 6. 구역 4: 기간 내 관객 수 Top 10 영화 (가로 막대그래프)
+st.header("📌 구역 4. 기간 내 관객 수 Top 10 영화")
+
+# 영화별 총 관객 수 및 10위권 차트인 일수 집계
+top10_summary = (
+    df.groupby('영화명')
+    .agg(
+        총관객수=('일관객', 'sum'),
+        차트인일수=('날짜', 'nunique')
+    )
+    .reset_index()
+    .nlargest(10, '총관객수')
+    .sort_values('총관객수', ascending=True)  # Plotly 가로 막대는 아래서부터 그려지므로 오름차순 정렬
+)
+
+# Plotly 가로 막대그래프 생성
+fig4 = px.bar(
+    top10_summary,
+    x='총관객수',
+    y='영화명',
+    orientation='h',
+    title="기간 내 일관객 합계 상위 10개 영화",
+    labels={'총관객수': '총 관객 수(명)', '영화명': '영화 제목', '차트인일수': '10위권 차트인 일수'},
+    text_auto=',d',
+    color='총관객수',
+    color_continuous_scale='Viridis'
+)
+
+# 마우스 오버 툴팁 설정 (10위권 차트인 일수 포함)
+fig4.update_traces(
+    hovertemplate="<b>영화명:</b> %{y}<br><b>총 관객 수:</b> %{x:,}명<br><b>10위권 진입 일수:</b> %{customdata[0]}일<extra></extra>",
+    customdata=top10_summary[['차트인일수']].values
+)
+
+fig4.update_layout(
+    xaxis_title="총 관객 수(명)",
+    yaxis_title="영화 제목",
+    coloraxis_showscale=False
+)
+
+st.plotly_chart(fig4, use_container_width=True)
+
+st.info("💡 **이 그래프로 알 수 있는 것:** 해당 기간 가장 높은 누적 관객을 모은 대표 흥행작 10편의 규모를 비교할 수 있으며, 차트인 일수(박스오피스 TOP 10 유지 기간)를 통해 장기 흥행 여부나 단기 폭발적 흥행 여부를 종합 분석할 수 있습니다.")
+
+st.markdown("---")
+
+# 7. 향후 추가될 구역 플레이스홀더 (확장용)
+st.header("📌 구역 5. [추후 추가 예정]")
 st.write("새로운 시간 기반 데이터 시각화 그래프가 여기에 추가될 예정입니다.")
 st.info("💡 **이 그래프로 알 수 있는 것:** (그래프 추가 후 설명이 작성됩니다.)")
