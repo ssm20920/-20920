@@ -278,4 +278,92 @@ st.markdown("---")
 # 8. 향후 추가될 구역 플레이스홀더 (확장용)
 st.header("📌 구역 6. [추후 추가 예정]")
 st.write("새로운 시간 기반 데이터 시각화 그래프가 여기에 추가될 예정입니다.")
-st.info("💡 **이 그래프로 알 수 있는 것:** (그래프 추가 후 설명이 작성됩니다.)")
+st.info("💡 **이 그래프로 알 수 있는 것:** (그래프 추가 후 설명이 작성됩니다.)")import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+st.set_page_config(page_title="영화 데이터 대화형 분석", layout="wide")
+st.title("🎬 질문에 따라 맞춤형 그래프 생성하기")
+
+# 1. 데이터 불러오기
+DATA_URL = "https://raw.githubusercontent.com/greatsong/modudata/main/data/kobis_daily.csv"
+
+@st.cache_data
+def load_data():
+    df = pd.read_csv(DATA_URL)
+    df['날짜'] = pd.to_datetime(df['날짜'].astype(str), format='%Y%m%d')
+    return df
+
+df = load_data()
+
+# 2. 질문 목록 정의
+questions = [
+    "1. 월과 요일별로 관객 수가 가장 몰리는 시기는 언제인가요? (히트맵)",
+    "2. 기간 내 가장 관객을 많이 모은 TOP 10 영화는 무엇인가요? (막대그래프)",
+    "3. 전체 박스오피스 총관객 수가 가장 많았던 날은 언제인가요? (영역그래프)"
+]
+
+# 3. 질문 선택 사이드바/드롭다운
+selected_question = st.selectbox("👉 답변을 확인하고 싶은 질문을 선택하세요:", questions)
+
+st.markdown("---")
+
+# 4. 질문별 동적 그래프 생성 logic
+if selected_question == questions[0]:
+    st.subheader("📌 Q1. 월×요일별 일관객 합계 히트맵 분석")
+    
+    # 데이터 전처리
+    df_hm = df.copy()
+    df_hm['월'] = df_hm['날짜'].dt.month.map(lambda x: f"{x}월")
+    day_map = {'Monday': '월요일', 'Tuesday': '화요일', 'Wednesday': '수요일', 
+               'Thursday': '목요일', 'Friday': '금요일', 'Saturday': '토요일', 'Sunday': '일요일'}
+    df_hm['요일'] = df_hm['날짜'].dt.day_name().map(day_map)
+    
+    days_order = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+    months_order = [f"{m}월" for m in range(1, 13)]
+    
+    pivot_df = df_hm.groupby(['월', '요일'])['일관객'].sum().reset_index()
+    
+    # 히트맵 생성
+    fig = px.density_heatmap(
+        pivot_df, x='요일', y='월', z='일관객',
+        category_orders={'요일': days_order, '월': months_order},
+        color_continuous_scale='Blues',
+        text_auto=',d',
+        title="월×요일별 관객 수 분포"
+    )
+    fig.update_layout(xaxis_title="요일", yaxis_title="월")
+    st.plotly_chart(fig, use_container_width=True)
+    st.info("💡 **답변 Summary:** 주말(토/일) 및 특정 성수기 월의 관객 집중도를 색상 농도로 확인할 수 있습니다.")
+
+elif selected_question == questions[1]:
+    st.subheader("📌 Q2. 누적 관객 수 TOP 10 영화 분석")
+    
+    top10_df = (
+        df.groupby('영화명')['일관객'].sum()
+        .reset_index()
+        .nlargest(10, '일관객')
+        .sort_values('일관객', ascending=True)
+    )
+    
+    fig = px.bar(
+        top10_df, x='일관객', y='영화명', orientation='h',
+        color='일관객', color_continuous_scale='Viridis',
+        text_auto=',d', title="기간 내 총관객 수 TOP 10"
+    )
+    fig.update_layout(xaxis_title="총 관객 수(명)", yaxis_title="영화 제목", coloraxis_showscale=False)
+    st.plotly_chart(fig, use_container_width=True)
+    st.info("💡 **답변 Summary:** 해당 기간 동안 가장 많은 총 관객 수를 기록한 최상위 10개 영화 순위입니다.")
+
+elif selected_question == questions[2]:
+    st.subheader("📌 Q3. 날짜별 박스오피스 총관객 수 추이 분석")
+    
+    daily_sum = df.groupby('날짜')['일관객'].sum().reset_index()
+    
+    fig = px.area(
+        daily_sum, x='날짜', y='일관객',
+        title="일별 전체 관객 수 합계 변화"
+    )
+    fig.update_layout(xaxis_title="날짜", yaxis_title="총 관객 수(명)")
+    st.plotly_chart(fig, use_container_width=True)
+    st.info("💡 **답변 Summary:** 연중 관객 수가 크게 치솟은 특정 날짜(명절, 연휴 등)를 파악할 수 있습니다.")
